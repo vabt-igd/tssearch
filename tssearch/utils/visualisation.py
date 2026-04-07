@@ -129,7 +129,7 @@ def plot_search_distance_result(res, sequence, ts=None, cmap_name="viridis"):
             plot_seq = sequence if sequence_shape == 1 else sequence[:, i]
             axs[i].plot(ts, plot_seq, "lightgray")
             for s, e, d in zip(res[k]["start"], res[k]["end"], res[k]["path_dist"]):
-                d_idx = int((d - min_dist) * cmap.N / delta_dist) - 1
+                d_idx = int((d - min_dist) * (cmap.N -1) / delta_dist)
                 axs[i].plot(ts[np.arange(s, e)], plot_seq[s:e], c=colors[d_idx])
             if i < sequence_shape - 2:
                 axs[i].sharex(axs[i + 1])

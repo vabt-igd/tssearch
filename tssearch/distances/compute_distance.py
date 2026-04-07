@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import tssearch
 from tssearch.search.segmentation import time_series_segmentation
 
 
@@ -26,8 +27,6 @@ def time_series_distance(dict_distances, x, y, tx=None, ty=None):
 
     """
 
-    exec("from tssearch import *")
-
     distance_results = []
     distance_names = []
 
@@ -43,6 +42,7 @@ def time_series_distance(dict_distances, x, y, tx=None, ty=None):
                     continue
 
                 func_total = dict_distances[d_type][dist]["function"]
+                func = getattr(tssearch, func_total)
 
                 # Check for parameters
                 parameters_total = {}
@@ -52,15 +52,18 @@ def time_series_distance(dict_distances, x, y, tx=None, ty=None):
                 if "time" in parameters_total:
                     parameters_total_copy = parameters_total.copy()
                     del parameters_total_copy["time"]
-                    eval_result = locals()[func_total](x, y, tx, ty, **parameters_total_copy)
+                    eval_result = func(x, y, tx, ty, **parameters_total_copy)
                 else:
-                    eval_result = locals()[func_total](x, y, **parameters_total)
+                    eval_result = func(x, y, **parameters_total)
 
-                distance_results += [eval_result]
-                distance_names += [dist]
+                distance_results.append(eval_result)
+                distance_names.append(dist)
 
-    distances = pd.DataFrame(data=np.array(distance_results), index=np.array(distance_names), columns=["Distance"])
-
+    distances = pd.DataFrame(
+        data=np.array(distance_results),
+        index=np.array(distance_names),
+        columns=["Distance"],
+    )
     return distances
 
 
@@ -97,15 +100,13 @@ def time_series_distance_windows(dict_distances, x, y, tx=None, ty=None, segment
         windows = []
         for i in range(len(results[func_name]) - 1):
             if ty is not None:
-                ts_w += [ty[results[func_name][i] : results[func_name][i + 1]]]
-            windows += [y[results[func_name][i] : results[func_name][i + 1]]]
+                ts_w.append(ty[results[func_name][i] : results[func_name][i + 1]])
+            windows.append(y[results[func_name][i] : results[func_name][i + 1]])
     else:
         windows = y
         ts_w = ty
 
     multivariate = True if len(np.shape(x)) > 1 else False
-
-    exec("from tssearch import *")
 
     dist_windows = pd.DataFrame()
     for d_type in dict_distances:
@@ -118,6 +119,7 @@ def time_series_distance_windows(dict_distances, x, y, tx=None, ty=None, segment
                     continue
 
                 func_total = dict_distances[d_type][dist]["function"]
+                func = getattr(tssearch, func_total)
 
                 # Check for parameters
                 parameters_total = {}
@@ -129,12 +131,12 @@ def time_series_distance_windows(dict_distances, x, y, tx=None, ty=None, segment
                     parameters_total_copy = parameters_total.copy()
                     del parameters_total_copy["time"]
                     for ty_window, window in zip(ts_w, windows):
-                        eval_result = locals()[func_total](x, window, tx, ty_window, **parameters_total_copy)
-                        distance_results += [eval_result]
+                        eval_result = func(x, window, tx, ty_window, **parameters_total_copy)
+                        distance_results.append(eval_result)
                 else:
                     for window in windows:
-                        eval_result = locals()[func_total](x, window, **parameters_total)
-                        distance_results += [eval_result]
+                        eval_result = func(x, window, **parameters_total)
+                        distance_results.append(eval_result)
 
                 dist_windows[dist] = distance_results
 

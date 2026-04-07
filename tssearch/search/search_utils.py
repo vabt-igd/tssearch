@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.signal import find_peaks
+import tssearch
 
 
 def elastic_search(dict_distances, query, sequence, tq=None, ts=None, weight=None):
@@ -29,10 +30,9 @@ def elastic_search(dict_distances, query, sequence, tq=None, ts=None, weight=Non
         accumulated cost matrix
     """
 
-    exec("from tssearch import *")
-
     # distance function
     func_total = dict_distances["function"]
+    func = getattr(tssearch, func_total)
 
     # Check for parameters
     parameters_total = {}
@@ -47,9 +47,9 @@ def elastic_search(dict_distances, query, sequence, tq=None, ts=None, weight=Non
     if "time" in parameters_total:
         parameters_total_copy = parameters_total.copy()
         del parameters_total_copy["time"]
-        distances, ac = locals()[func_total](query, sequence, tq, ts, **parameters_total_copy)
+        distances, ac = func(query, sequence, tq, ts, **parameters_total_copy)
     else:
-        distances, ac = locals()[func_total](query, sequence, **parameters_total)
+        distances, ac = func(query, sequence, **parameters_total)
 
     return distances, ac
 
@@ -75,10 +75,9 @@ def lockstep_search(dict_distances, query, sequence, weight):
         distance value between query and sequence
     """
 
-    exec("from tssearch import *")
-
     # distance function
     func_total = dict_distances["function"]
+    func = getattr(tssearch, func_total)
 
     # Check for parameters
     parameters_total = {}
@@ -86,12 +85,10 @@ def lockstep_search(dict_distances, query, sequence, weight):
         parameters_total = dict_distances["parameters"]
 
     lw = len(query)
-    res = np.zeros(len(sequence) - lw, "d")
+    res = np.zeros(len(sequence) - lw, dtype="d")
     for i in range(len(sequence) - lw):
         seq_window = sequence[i : i + lw]
-
-        eval_result = locals()[func_total](seq_window, query, weight, **parameters_total)
-
+        eval_result = func(seq_window, query, weight, **parameters_total)
         res[i] = eval_result / lw  # default normalization
 
     return res
